@@ -1,5 +1,7 @@
 package com.gsy.bok.service.impl;
 
+import cn.hutool.captcha.CaptchaUtil;
+import cn.hutool.captcha.LineCaptcha;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.gsy.bok.domain.CheckCode;
@@ -10,7 +12,9 @@ import com.gsy.bok.exception.RedisDataException;
 import com.gsy.bok.exception.RepeatCodeException;
 import com.gsy.bok.mapper.UserMapper;
 import com.gsy.bok.service.UserService;
+import com.gsy.bok.utils.JwtUtil;
 import com.gsy.bok.utils.Result;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -18,7 +22,10 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.time.*;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 用户业务实现。
@@ -31,6 +38,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final StringRedisTemplate stringRedisTemplate;
+
+    /** 同一个验证码允许的最大错误次数，超过就作废 */
+    private static final long MAX_CODE_FAIL = 5;
     /**
      * 登录
      * @param user
@@ -40,19 +50,23 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public Result login(User user) {
         //isBlank方法只有在参数有具体值，比如"a"才返回true，其余都返回false
         if(user == null || StringUtils.isBlank(user.getAccount()) || StringUtils.isBlank(user.getPassword())){
-            return Result.fail("登录信息请填写完整");
+            return Result.fail(400, "登录信息请填写完整");
         }
         //查询数据库是否存在该用户
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(User::getAccount,user.getAccount()).select(User::getAccount).select(User::getPassword);
+        // 登录成功要签发 token，需要 id，所以把 id 一起查出来
+        wrapper.eq(User::getAccount,user.getAccount())
+                .select(User::getId, User::getAccount, User::getPassword);
         User user_db = userMapper.selectOne(wrapper);
-        //不存在，返回fail
-        if(user_db == null){
-            return Result.fail("未查询到账号为"+user.getAccount()+"的用户");
+        // 账号不存在和密码错误必须返回同一句提示，否则等于给攻击者提供账号枚举能力
+        if(user_db == null || !passwordEncoder.matches(user.getPassword(), user_db.getPassword())){
+            return Result.fail(401, "账号或密码错误");
         }
-        //存在就将该密码加密与查到的密码比较
-        boolean res = passwordEncoder.matches(user.getPassword(), user_db.getPassword());
-        return res?Result.success("登录成功"):Result.fail("密码错误，登陆失败，请重试");
+        // 登录成功签发 JWT，前端后续请求把它放在 Authorization 头里
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("userId", user_db.getId());
+        claims.put("account", user_db.getAccount());
+        return Result.success(JwtUtil.generate_token(claims));
     }
 
     /**
@@ -62,12 +76,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      */
     @Override
     public Result sign(User user) {
-        if(user == null || user.getGender() == null ||
-                StringUtils.isBlank(user.getAccount()) || StringUtils.isBlank(user.getPassword()) ||
+        // 注册信息完整性校验
+        if(user == null || user.getGender() == null || StringUtils.isBlank(user.getPassword()) ||
                 StringUtils.isBlank(user.getAddress()) || StringUtils.isBlank(user.getEmail()) ||
                 StringUtils.isBlank(user.getImageUrl()) || StringUtils.isBlank(user.getNickname()) ||
                 StringUtils.isBlank(user.getPhone())){
-            return Result.fail("注册信息不完整，请重新填写");
+            return Result.fail(400, "注册信息不完整，请重新填写");
         }
         // 查询该手机号所对应用户是否存在
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
@@ -75,7 +89,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         User user_db = userMapper.selectOne(wrapper);
         // 存在就返回fail
         if(user_db != null){
-            return Result.fail("该用户已存在");
+            return Result.fail(409, "该手机号已被注册");
         }
         // 不存在就生成唯一账号，加密密码
         String account = generate_global_account();
@@ -83,11 +97,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         String encode_password = passwordEncoder.encode(user.getPassword());
         user.setPassword(encode_password);
         // 插入数据库 有全局异常，失败会被捕获
-        int insert = userMapper.insert(user);
-        if(insert == 0){
-            throw new DBException("数据库操作异常");
-        }
-        return Result.success("注册成功");
+        userMapper.insert(user);
+        // 账号是注册成功后由服务端生成并返回给前端的唯一凭证，前端不需要也不能自己指定
+        return Result.success(account);
     }
 
     /**
@@ -100,12 +112,48 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new CheckCodeDataException("注册时手机号发送验证码校验异常");
         }
         // 查询redis中存储的短期验证码，进行比较
-        String key = "register:"+"code:" + checkCode.getPhone();
+        String key = "register:code:" + checkCode.getPhone();
+        String failKey = "register:code:fail:" + checkCode.getPhone();
         String res = stringRedisTemplate.opsForValue().get(key);
         if (res == null) {
-            throw new RedisDataException("短期验证码不存在");
+            throw new RedisDataException("验证码不存在或已过期");
         }
-        return res.equals(checkCode.getCode())?Result.success("验证码校验通过"):Result.fail("验证码错误");
+        if (!res.equals(checkCode.getCode())) {
+            // 记录失败次数，达到上限就让验证码作废，必须重新获取
+            Long fails = stringRedisTemplate.opsForValue().increment(failKey);
+            if (fails != null && fails == 1L) {
+                stringRedisTemplate.expire(failKey, Duration.ofMinutes(10));
+            }
+            if (fails != null && fails >= MAX_CODE_FAIL) {
+                stringRedisTemplate.delete(key);
+                stringRedisTemplate.delete(failKey);
+                throw new RepeatCodeException("验证码错误次数过多，请重新获取");
+            }
+            return Result.fail(400, "验证码错误");
+        }
+        // 校验通过立刻消费掉，防止同一个验证码被重复使用
+        stringRedisTemplate.delete(key);
+        stringRedisTemplate.delete(failKey);
+        return Result.success("验证码校验通过");
+    }
+
+    /**
+     * 生成前端展示的验证码图片
+     */
+    @Override
+    public void generate_code(String phone, HttpServletResponse response) throws IOException {
+        // Hutool 的 LineCaptcha 写出的是 PNG 字节，这里必须写 image/png；
+        // 同时禁止缓存，否则浏览器可能拿到上一张验证码
+        response.setContentType("image/png");
+        response.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+        response.setHeader("Pragma", "no-cache");
+        LineCaptcha lineCaptcha = CaptchaUtil.createLineCaptcha(100, 40, 6, 3);
+        // 将验证码存到redis
+        String key = "register:code:" + phone;
+        stringRedisTemplate.opsForValue().set(key, lineCaptcha.getCode(), Duration.ofMinutes(1));
+        // 重新获取验证码时清空失败计数，避免用户被上次的错误次数连累
+        stringRedisTemplate.delete("register:code:fail:" + phone);
+        lineCaptcha.write(response.getOutputStream());
     }
 
     private String generate_global_account(){

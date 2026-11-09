@@ -4,6 +4,9 @@ import com.baomidou.mybatisplus.spring.service.IService;
 import com.gsy.bok.domain.CheckCode;
 import com.gsy.bok.domain.User;
 import com.gsy.bok.utils.Result;
+import jakarta.servlet.http.HttpServletResponse;
+
+import java.io.IOException;
 
 /**
  * 用户业务接口。
@@ -16,4 +19,6 @@ public interface UserService extends IService<User> {
     Result sign(User user);
 
     Result check(CheckCode checkCode);
+
+    void generate_code(String phone, HttpServletResponse response) throws IOException;
 }

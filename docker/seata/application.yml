@@ -1,0 +1,54 @@
+server:
+  port: 7091
+
+spring:
+  application:
+    name: seata-server
+  main:
+    web-application-type: none
+
+logging:
+  config: classpath:logback-spring.xml
+  file:
+    path: ${log.home:${user.home}/logs/seata}
+
+seata:
+  # 配置中心：用本地文件（application.yml）即可；要改成 nacos 见文末注释
+  config:
+    type: file
+
+  # 注册中心：注册到 Nacos，客户端据此发现 TC
+  registry:
+    type: nacos
+    nacos:
+      application: seata-server
+      server-addr: bok-nacos:8848
+      # 注意：nacos 3.x 的默认命名空间是 public（不再是空串），这里必须显式写 public
+      namespace: public
+      group: SEATA_GROUP
+      cluster: default
+
+  # 事务存储：走 MySQL
+  store:
+    mode: db
+    db:
+      datasource: druid
+      db-type: mysql
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://bok-mysql:3306/seata?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true
+      user: root
+      password: root
+
+  server:
+    # TC 对外服务端口（客户端连这个），同时会注册到 Nacos
+    service-port: 8850
+
+# 如果以后想把配置也放到 nacos 配置中心，把上面 config 段换成：
+#  config:
+#    type: nacos
+#    nacos:
+#      server-addr: bok-nacos:8848
+#      namespace: public
+#      group: SEATA_GROUP
+#      data-id: seataServer.properties
+# 并先把 seata 的配置项导入该 dataId。

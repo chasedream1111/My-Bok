@@ -13,7 +13,7 @@ logging:
     path: ${log.home:${user.home}/logs/seata}
 
 seata:
-  # 配置中心：用本地文件（application.yml）即可；要改成 nacos 见文末注释
+  # 配置中心：用本地文件（application.yml）即可；要改�?nacos 见文末注�?
   config:
     type: file
 
@@ -23,7 +23,7 @@ seata:
     nacos:
       application: seata-server
       server-addr: bok-nacos:8848
-      # 注意：nacos 3.x 的默认命名空间是 public（不再是空串），这里必须显式写 public
+      # 注意：nacos 3.x 的默认命名空间是 public（不再是空串），这里必须显式�?public
       namespace: public
       group: SEATA_GROUP
       cluster: default
@@ -36,14 +36,13 @@ seata:
       db-type: mysql
       driver-class-name: com.mysql.cj.jdbc.Driver
       url: jdbc:mysql://bok-mysql:3306/seata?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true
-      user: root
-      password: root
-
+      user: ${MYSQL_USER:root}
+      password: ${MYSQL_PASSWORD:root}
   server:
-    # TC 对外服务端口（客户端连这个），同时会注册到 Nacos
+    # TC 对外服务端口（客户端连这个），同时会注册�?Nacos
     service-port: 8850
 
-# 如果以后想把配置也放到 nacos 配置中心，把上面 config 段换成：
+# 如果以后想把配置也放�?nacos 配置中心，把上面 config 段换成：
 #  config:
 #    type: nacos
 #    nacos:
@@ -51,4 +50,4 @@ seata:
 #      namespace: public
 #      group: SEATA_GROUP
 #      data-id: seataServer.properties
-# 并先把 seata 的配置项导入该 dataId。
+# 并先�?seata 的配置项导入�?dataId�?

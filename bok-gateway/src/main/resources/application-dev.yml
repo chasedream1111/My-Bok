@@ -1,0 +1,6 @@
+# 本地开发环境
+logging:
+  level:
+    com.gsy: debug
+    # 调试路由匹配时很有用：能看到 Predicate 命中了哪条规则
+    org.springframework.cloud.gateway: debug

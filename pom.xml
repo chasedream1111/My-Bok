@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- 整个项目统一继承 Spring Boot，所有子模块不再各自声明 parent -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.1.2</version>
+        <relativePath/> <!-- lookup parent from repository -->
+    </parent>
+
+    <groupId>com.gsy</groupId>
+    <artifactId>bok</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>bok</name>
+    <description>Bok 聚合工程：统一版本、按依赖顺序构建</description>
+
+    <!-- 顺序即构建顺序：common -> api -> user / gateway -->
+    <modules>
+        <module>bok-common</module>
+        <module>bok-api</module>
+        <module>bok-user</module>
+        <module>bok-gateway</module>
+    </modules>
+
+    <properties>
+        <java.version>17</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- 第三方版本集中管理，子模块不再写 version -->
+        <spring-cloud.version>5.1.0-M1</spring-cloud.version>
+        <spring-cloud-alibaba.version>2025.1.0.0</spring-cloud-alibaba.version>
+        <mybatis-plus.version>3.5.18.1</mybatis-plus.version>
+        <jjwt.version>0.12.6</jjwt.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- 本项目内部模块的版本统一由父工程决定 -->
+            <dependency>
+                <groupId>com.gsy</groupId>
+                <artifactId>bok-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.gsy</groupId>
+                <artifactId>bok-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+</project>

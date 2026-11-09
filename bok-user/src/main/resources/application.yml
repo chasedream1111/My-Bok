@@ -1,0 +1,42 @@
+server:
+  port: 8081
+
+spring:
+  profiles:
+    # 默认本地开发；线上用 SPRING_PROFILES_ACTIVE=prod 或 --spring.profiles.active=prod 覆盖
+    active: dev
+  cloud:
+    # Spring Boot 4.1.2 与 Spring Cloud 2025.1.x(5.1.0-M1) 的版本自检不匹配，关闭该自检。
+    # 与 Nacos 服务端版本无关，所有环境都要保留。
+    compatibility-verifier:
+      enabled: false
+
+mybatis-plus:
+  # mapper xml 位置
+  mapper-locations: classpath:mapper/*.xml
+  # 实体别名包
+  type-aliases-package: com.gsy.bok.domain
+  configuration:
+    # 下划线转驼峰
+    map-underscore-to-camel-case: true
+    # 开启返回字段为 null 也保留
+    call-setters-on-nulls: true
+  global-config:
+    db-config:
+      # 主键策略：自动递增
+      id-type: auto
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
+
+# 只暴露必要的 actuator 端点，不要 include: "*"
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true

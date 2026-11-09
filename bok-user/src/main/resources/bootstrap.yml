@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: bok-user
+  cloud:
+    nacos:
+      # bootstrap 阶段就会用到这里，所以不能依赖 application-*.yml 的覆盖；
+      # 用环境变量切换：本地无需设置（默认 127.0.0.1:8848），线上设为 bok-nacos:8848
+      server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+      config:
+        file-extension: yaml

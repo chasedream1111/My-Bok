@@ -1,0 +1,20 @@
+server:
+  port: 8080
+
+spring:
+  profiles:
+    # 默认本地开发；线上用 SPRING_PROFILES_ACTIVE=prod 或 --spring.profiles.active=prod 覆盖
+    active: dev
+  cloud:
+    # Spring Boot 4.1.2 与 Spring Cloud 2025.1.x(5.1.0-M1) 的版本自检不匹配，关闭该自检。
+    # 与 Nacos 服务端版本无关，所有环境都要保留。
+    compatibility-verifier:
+      enabled: false
+
+feign:
+  okhttp:
+    enabled: true
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"

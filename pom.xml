@@ -18,11 +18,15 @@
     <name>bok</name>
     <description>Bok 聚合工程：统一版本、按依赖顺序构建</description>
 
-    <!-- 顺序即构建顺序：common -> api -> user / gateway -->
+    <!-- 顺序即构建顺序：common -> api -> 业务服务 -> gateway -->
     <modules>
         <module>bok-common</module>
         <module>bok-api</module>
         <module>bok-user</module>
+        <module>bok-blog</module>
+        <module>bok-blog-liked</module>
+        <module>bok-blog-comment</module>
+        <module>bok-comment-liked</module>
         <module>bok-gateway</module>
     </modules>
 
@@ -48,6 +52,26 @@
             <dependency>
                 <groupId>com.gsy</groupId>
                 <artifactId>bok-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.gsy</groupId>
+                <artifactId>bok-blog</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.gsy</groupId>
+                <artifactId>bok-blog-liked</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.gsy</groupId>
+                <artifactId>bok-blog-comment</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.gsy</groupId>
+                <artifactId>bok-comment-liked</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

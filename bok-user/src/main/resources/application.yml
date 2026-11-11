@@ -10,6 +10,35 @@ spring:
     # 与 Nacos 服务端版本无关，所有环境都要保留。
     compatibility-verifier:
       enabled: false
+  rabbitmq:
+    # 生产者 confirm：correlated 才能通过 CorrelationData 区分是哪条消息被确认
+    publisher-confirm-type: correlated
+    # 生产者 return：消息没有路由到任何队列时触发 ReturnsCallback（还需要 template.mandatory）
+    publisher-returns: true
+    connection-timeout: 10s
+    template:
+      # 没有匹配队列时把消息退回给生产者，而不是静默丢弃
+      mandatory: true
+      # 生产者重试：broker 不可用等发送异常时在本地重试
+      retry:
+        enabled: true
+        initial-interval: 1000ms
+        max-attempts: 3
+        multiplier: 2
+        max-interval: 10000ms
+    listener:
+      simple:
+        # 每个消费者一次只预取一条，处理完再取下一条，避免消息堆在客户端内存
+        prefetch: 1
+        acknowledge-mode: auto
+        # 消费重试：处理逻辑抛异常时本地重试，超过次数后不再重新入队（避免死循环）
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          initial-interval: 1000ms
+          max-attempts: 3
+          multiplier: 2
+          max-interval: 10000ms
 
 mybatis-plus:
   # mapper xml 位置
@@ -40,3 +69,12 @@ management:
     health:
       probes:
         enabled: true
+oss:
+  endpoint: https://oss-cn-beijing.aliyuncs.com
+  region: cn-beijing
+  bucket: my-bok
+  dirprefix: bok/user/
+jwt:
+  login:
+    # token 有效期（分钟）。JWT 的 exp 和 Redis 里登录态的 TTL 都用这个值
+    expiration: 30

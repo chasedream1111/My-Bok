@@ -46,6 +46,11 @@ bin/
 *.pem
 *.key
 
+### 环境相关配置：不入库，仓库只保留 *.example.yml 模板 ###
+**/src/main/resources/application-dev.yml
+**/src/main/resources/application-prod.yml
+docker/seata/application.yml
+
 ### OS ###
 .DS_Store
 Thumbs.db

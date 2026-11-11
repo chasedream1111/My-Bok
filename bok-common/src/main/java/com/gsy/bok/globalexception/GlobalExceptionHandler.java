@@ -1,13 +1,8 @@
 package com.gsy.bok.globalexception;
 
-import com.gsy.bok.exception.CheckCodeDataException;
-import com.gsy.bok.exception.DBException;
-import com.gsy.bok.exception.RedisDataException;
-import com.gsy.bok.exception.RepeatCodeException;
+import com.gsy.bok.exception.*;
 import com.gsy.bok.utils.Result;
 import com.gsy.bok.utils.Results;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -50,23 +45,22 @@ public class GlobalExceptionHandler {
         return Results.toResponse(Result.fail(400, e.getMessage()));
     }
 
-    /**
-     * 唯一索引冲突：手机号/账号已存在时，MyBatis-Spring 会把
-     * java.sql.SQLIntegrityConstraintViolationException 翻译成 DuplicateKeyException。
-     */
-    @ExceptionHandler(DuplicateKeyException.class)
-    public ResponseEntity<Result<?>> duplicateKey(DuplicateKeyException e) {
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Result<?>> illState(IllegalStateException e) {
         e.printStackTrace();
-        return Results.toResponse(Result.fail(409, "该手机号或账号已被注册，请更换后重试"));
+        return Results.toResponse(Result.fail(400, e.getMessage()));
     }
 
-    /**
-     * 其它数据完整性异常（字段超长、非空约束等）。
-     * DuplicateKeyException 是它的子类，会优先命中上面更具体的处理器。
-     */
-    @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<Result<?>> dataIntegrity(DataIntegrityViolationException e) {
+    @ExceptionHandler(TokenExpirationException.class)
+    public ResponseEntity<Result<?>> tokenExp(TokenExpirationException e) {
         e.printStackTrace();
-        return Results.toResponse(Result.fail(400, "提交的数据不符合要求，请检查后重试"));
+        return Results.toResponse(Result.fail(400, e.getMessage()));
     }
+
+    @ExceptionHandler(JwtParseProcessException.class)
+    public ResponseEntity<Result<?>> jwtParse(JwtParseProcessException e) {
+        e.printStackTrace();
+        return Results.toResponse(Result.fail(400, e.getMessage()));
+    }
+
 }

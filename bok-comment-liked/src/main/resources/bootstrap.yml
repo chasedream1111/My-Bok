@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: bok-comment-liked
+  cloud:
+    nacos:
+      # bootstrap 阶段就要用，线上用环境变量设成 bok-nacos:8848
+      server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+      config:
+        file-extension: yaml

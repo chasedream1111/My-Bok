@@ -38,6 +38,13 @@ public final class JwtUtil {
     }
 
     public static String generate_token(Map<String, ?> claims) {
+        return generate_token(claims, TTL);
+    }
+
+    /**
+     * 指定有效期的签发，TTL 从配置读取时用这个重载，保证 JWT 和 Redis 的过期时间一致。
+     */
+    public static String generate_token(Map<String, ?> claims, Duration ttl) {
         Instant now = Instant.now();
         JwtBuilder builder = Jwts.builder();
         for (Map.Entry<String, ?> entry : claims.entrySet()) {
@@ -45,7 +52,7 @@ public final class JwtUtil {
         }
         return builder
                 .issuedAt(Date.from(now))
-                .expiration(Date.from(now.plus(TTL)))
+                .expiration(Date.from(now.plus(ttl)))
                 .signWith(private_key, Jwts.SIG.RS256)
                 .compact();
     }

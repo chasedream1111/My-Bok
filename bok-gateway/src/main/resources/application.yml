@@ -10,7 +10,30 @@ spring:
     # 与 Nacos 服务端版本无关，所有环境都要保留。
     compatibility-verifier:
       enabled: false
-
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: bok-user
+              uri: lb://bok-user
+              predicates:
+                - Path=/user/**
+            - id: bok-blog
+              uri: lb://bok-blog
+              predicates:
+                - Path=/blog/**
+            - id: bok-blog-liked
+              uri: lb://bok-blog-liked
+              predicates:
+                - Path=/blog-liked/**
+            - id: bok-blog-comment
+              uri: lb://bok-blog-comment
+              predicates:
+                - Path=/blog-comment/**
+            - id: bok-comment-liked
+              uri: lb://bok-comment-liked
+              predicates:
+                - Path=/blog-comment-liked/**
 feign:
   okhttp:
     enabled: true
